@@ -176,9 +176,13 @@ def test_live_ollama_provider_tool_selection():
 
     messages = [
         Message(
+            role="system",
+            content="You are Linux Command Pilot. If a tool is available to answer the request, invoke the tool directly.",
+        ),
+        Message(
             role="user",
             content="Check my disk usage.",
-        )
+        ),
     ]
 
     response = provider.chat(messages=messages, tools=tools)

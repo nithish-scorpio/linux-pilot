@@ -31,7 +31,7 @@ class OllamaProvider(LLMProvider):
         self,
         model: str = "qwen3:4b",
         host: str = "http://localhost:11434",
-        timeout: float = 180.0,
+        timeout: float = 300.0,
     ):
         self.model = model
         self.host = host.rstrip("/")
@@ -173,7 +173,7 @@ class OllamaProvider(LLMProvider):
 def get_llm_provider(settings: Optional[Settings] = None) -> LLMProvider:
     """Factory to retrieve the configured LLM provider instance."""
     cfg = settings or get_settings()
-    timeout = max(180.0, float(cfg.command_timeout * 3))
+    timeout = max(300.0, float(cfg.command_timeout * 5))
     return OllamaProvider(
         model=cfg.model,
         host=cfg.ollama_host,
