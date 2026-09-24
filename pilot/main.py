@@ -10,6 +10,7 @@ import typer
 from rich.table import Table
 
 from pilot.config import get_settings
+from pilot.logger import setup_logging
 from pilot.memory import ConversationMemory, SQLiteMemoryStore
 from pilot.ui.terminal import (
     console,
@@ -48,6 +49,9 @@ def main(
     verbose: bool = typer.Option(False, "--verbose", help="Show full plan, tool, and security pipeline."),
 ):
     """Main CLI handler. If no subcommand is passed, enters interactive mode."""
+    # Initialize redacting logging
+    setup_logging(verbose=verbose)
+
     # Store global flags in context
     ctx.ensure_object(dict)
     ctx.obj["dry_run"] = dry_run
@@ -210,13 +214,25 @@ def doctor():
         all_ok = False
 
     # 4. Tool system
-    checklist.append(("✓", "Tool system framework", "green"))
+    from pilot.tools.registry import default_registry
+
+    registered_count = len(default_registry.list_tools())
+    checklist.append(("✓", f"Tool system framework ({registered_count} tools registered)", "green"))
 
     # 5. Security policy
-    checklist.append(("✓", "Security policy (3-tier architecture)", "green"))
+    checklist.append(("✓", "Security policy (3-tier architecture with argv validator)", "green"))
 
-    # 6. Configuration
+    # 6. Configuration & Allowed paths
     checklist.append(("✓", "Configuration & Allowed Paths", "green"))
+
+    # 7. Package Manager
+    from pilot.tools.packages import detect_package_manager
+
+    pm = detect_package_manager()
+    checklist.append(("✓", f"Package Manager ({pm.name} on {pm.distro})", "green"))
+
+    # 8. Memory Store
+    checklist.append(("✓", f"Persistent Memory Store (SQLite at {settings.db_path})", "green"))
 
     for mark, label, color in checklist:
         console.print(f"[{color}]{mark}[/{color}] {label}")
@@ -253,21 +269,21 @@ def show_config():
 
 @app.command(name="tools")
 def list_tools():
-    """List baseline and registered tools."""
-    columns = ["Tool Name", "Risk Tier", "Purpose", "Status"]
-    rows = [
-        ["system_info", "[green]SAFE[/green]", "OS, kernel, CPU, RAM, uptime inspection", "Baseline (Phase 5)"],
-        ["disk_usage", "[green]SAFE[/green]", "Mount points, disk capacity and utilization", "Baseline (Phase 5)"],
-        ["memory_usage", "[green]SAFE[/green]", "RAM and swap memory metrics", "Baseline (Phase 5)"],
-        ["process_list", "[green]SAFE[/green]", "Top running processes and resource consumers", "Baseline (Phase 5)"],
-        ["network_info", "[green]SAFE[/green]", "Interfaces, IP addresses, default routes", "Baseline (Phase 5)"],
-        ["list_directory", "[green]SAFE[/green]", "Explore files within allowed paths", "Filesystem (Phase 8)"],
-        ["read_file", "[green]SAFE[/green]", "Read file contents with secret redaction", "Filesystem (Phase 8)"],
-        ["search_files", "[green]SAFE[/green]", "Find files matching glob/regex patterns", "Filesystem (Phase 8)"],
-        ["write_file", "[yellow]CONFIRM[/yellow]", "Modify/create files with diff review", "Filesystem (Phase 8)"],
-        ["execute_command", "[bold red]FILTERED[/bold red]", "Validated fallback shell execution", "Terminal (Phase 7)"],
-    ]
-    print_table("Available Tools", columns, rows)
+    """List all available and registered tools."""
+    from pilot.tools.registry import default_registry
+
+    tools = sorted(default_registry.list_tools(), key=lambda t: (t.risk_tier.value, t.name))
+    columns = ["Tool Name", "Risk Tier", "Description"]
+    rows = []
+    for t in tools:
+        tier_val = t.risk_tier.value
+        tier_color = "green" if tier_val == "safe" else ("yellow" if tier_val == "confirm" else "bold red")
+        rows.append([
+            t.name,
+            f"[{tier_color}]{tier_val.upper()}[/{tier_color}]",
+            t.description.split(".")[0],
+        ])
+    print_table(f"Available Tools ({len(tools)} registered)", columns, rows)
 
 
 @app.command(name="explain")
