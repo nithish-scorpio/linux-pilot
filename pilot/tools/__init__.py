@@ -9,6 +9,7 @@ from pilot.tools.system import (
     ProcessListTool,
     SystemInfoTool,
 )
+from pilot.tools.terminal import ExecuteCommandTool
 
 
 def register_safe_tools(registry: ToolRegistry) -> None:
@@ -20,8 +21,14 @@ def register_safe_tools(registry: ToolRegistry) -> None:
     registry.register(NetworkInfoTool())
 
 
-# Auto-populate the global default registry with safe tools
-register_safe_tools(default_registry)
+def register_all_baseline_tools(registry: ToolRegistry) -> None:
+    """Register baseline safe tools and terminal command tool."""
+    register_safe_tools(registry)
+    registry.register(ExecuteCommandTool())
+
+
+# Auto-populate the global default registry with baseline tools
+register_all_baseline_tools(default_registry)
 
 __all__ = [
     "BaseTool",
@@ -34,5 +41,7 @@ __all__ = [
     "MemoryUsageTool",
     "ProcessListTool",
     "NetworkInfoTool",
+    "ExecuteCommandTool",
     "register_safe_tools",
+    "register_all_baseline_tools",
 ]

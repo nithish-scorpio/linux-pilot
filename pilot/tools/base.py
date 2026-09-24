@@ -11,14 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from pilot.llm.client import ToolDefinition, ToolFunctionSchema, ToolParametersSchema
-
-
-class RiskTier(str, Enum):
-    """Security risk classification for tool operations."""
-
-    SAFE = "safe"          # Read-only, safe to run automatically
-    CONFIRM = "confirm"    # Modifies system/files, requires user approval
-    BLOCKED = "blocked"    # Dangerous or destructive, prohibited
+from pilot.security.permissions import RiskTier
 
 
 class ToolResult(BaseModel):
