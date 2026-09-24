@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-command-pilot"
+version = "0.1.0"
+description = "A local, privacy-focused AI agent that safely inspects, diagnoses, and interacts with Linux OS through controlled tools."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Linux Command Pilot Contributors"}
+]
+dependencies = [
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "rich>=13.9.0",
+    "typer>=0.15.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.14.0",
+]
+
+[project.scripts]
+pilot = "pilot.main:app"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: marks tests as integration tests requiring running services",
+]
