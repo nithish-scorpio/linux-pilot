@@ -172,25 +172,37 @@ class SecurityValidator:
                 f"Binary '{binary}' is unconditionally prohibited by security policy",
             )
 
-        # 2. Check for sensitive path access
+        # 2. Check for sensitive path and credential access
         for arg in args:
             clean_arg = arg.strip("'\"")
+            # Prohibit access to SSH private keys, shell history, and credentials
+            if any(k in clean_arg for k in ("id_rsa", "id_ed25519", "id_ecdsa", "id_dsa", ".bash_history")):
+                return RiskTier.BLOCKED, is_sudo, f"Prohibited credential access: '{clean_arg}'"
+
+            # Prohibit modifying or deleting the security layer itself
+            if "pilot" in clean_arg and "security" in clean_arg and binary in ("rm", "mv", "cp", "chmod", "chown", "truncate", "tee"):
+                return RiskTier.BLOCKED, is_sudo, f"Prohibited attempt to modify or delete the security layer: '{clean_arg}'"
+
             for sp in SENSITIVE_PATHS:
                 if clean_arg == sp or clean_arg.startswith(f"{sp}/"):
                     # Check if read vs write or dangerous
-                    if binary in ("cat", "tail", "head", "less", "more", "grep") and sp in ("/etc/shadow", "/etc/gshadow"):
-                        return RiskTier.BLOCKED, is_sudo, f"Prohibited credential access: '{sp}'"
+                    if sp in ("/etc/shadow", "/etc/gshadow", "/etc/sudoers", "/etc/sudoers.d", "/proc/kcore", "/root"):
+                        return RiskTier.BLOCKED, is_sudo, f"Prohibited access to sensitive system path: '{sp}'"
                     elif binary in CONFIRM_BINARIES or binary in ("rm", "cp", "mv", "chmod", "chown"):
                         return RiskTier.BLOCKED, is_sudo, f"Prohibited modification of sensitive path: '{sp}'"
 
         # 3. Check destructive delete commands (rm -rf /)
         if binary == "rm":
+            has_no_preserve = "--no-preserve-root" in args
             has_recursive = any(flag in args for flag in ("-r", "-R", "--recursive")) or any(
                 f.startswith("-") and ("r" in f or "R" in f) for f in args if f.startswith("-") and not f.startswith("--")
             )
             has_force = any(flag in args for flag in ("-f", "--force")) or any(
                 f.startswith("-") and ("f" in f) for f in args if f.startswith("-") and not f.startswith("--")
             )
+
+            if has_no_preserve:
+                return RiskTier.BLOCKED, is_sudo, "Refusing rm with --no-preserve-root"
 
             # Check targets
             targets = [a for a in args if not a.startswith("-")]
@@ -204,6 +216,22 @@ class SecurityValidator:
                     )
             # Non-blocked rm requires confirmation
             return RiskTier.CONFIRM, is_sudo, f"File deletion: 'rm {' '.join(args)}'"
+
+        # 3b. Check recursive root/critical permission change (chmod -R 777 /)
+        if binary in ("chmod", "chown"):
+            has_recursive = any(flag in args for flag in ("-r", "-R", "--recursive")) or any(
+                f.startswith("-") and ("r" in f or "R" in f) for f in args if f.startswith("-") and not f.startswith("--")
+            )
+            targets = [a for a in args if not a.startswith("-")]
+            if len(targets) > 1 and has_recursive:
+                for target in targets[1:]:
+                    clean_target = target.strip("'\"").rstrip("/")
+                    if clean_target in BLOCKED_DELETE_TARGETS or clean_target == "":
+                        return (
+                            RiskTier.BLOCKED,
+                            is_sudo,
+                            f"Refusing recursive permission change on root or critical path: '{binary} {target}'",
+                        )
 
         # 4. Check find with destructive flags
         if binary == "find":
