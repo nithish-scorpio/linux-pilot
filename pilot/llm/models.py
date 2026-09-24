@@ -31,7 +31,7 @@ class OllamaProvider(LLMProvider):
         self,
         model: str = "qwen3:4b",
         host: str = "http://localhost:11434",
-        timeout: float = 60.0,
+        timeout: float = 180.0,
     ):
         self.model = model
         self.host = host.rstrip("/")
@@ -75,6 +75,10 @@ class OllamaProvider(LLMProvider):
                 "temperature": temperature,
             },
         }
+
+        # Allow caller kwargs to override or extend options
+        if "num_predict" in kwargs:
+            payload["options"]["num_predict"] = kwargs["num_predict"]
 
         if tools:
             payload["tools"] = [t.model_dump() for t in tools]
@@ -169,8 +173,9 @@ class OllamaProvider(LLMProvider):
 def get_llm_provider(settings: Optional[Settings] = None) -> LLMProvider:
     """Factory to retrieve the configured LLM provider instance."""
     cfg = settings or get_settings()
+    timeout = max(180.0, float(cfg.command_timeout * 3))
     return OllamaProvider(
         model=cfg.model,
         host=cfg.ollama_host,
-        timeout=float(cfg.command_timeout * 2),  # Allow LLM sufficient inference window
+        timeout=timeout,
     )
