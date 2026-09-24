@@ -10,6 +10,7 @@ import typer
 from rich.table import Table
 
 from pilot.config import get_settings
+from pilot.memory import ConversationMemory, SQLiteMemoryStore
 from pilot.ui.terminal import (
     console,
     err_console,
@@ -77,7 +78,9 @@ def ask(
 
 
 def run_interactive_shell(dry_run: bool, verbose: bool):
-    """Run interactive REPL loop."""
+    """Run interactive REPL loop maintaining short-term conversation context."""
+    store = SQLiteMemoryStore()
+    memory = ConversationMemory(store=store)
     console.print("[dim]Type your command or request in natural language. Type 'exit' or 'quit' to quit.[/dim]\n")
     while True:
         try:
@@ -87,15 +90,35 @@ def run_interactive_shell(dry_run: bool, verbose: bool):
             if prompt.lower() in ("exit", "quit", "q"):
                 console.print("[dim]Exiting Linux Command Pilot. Goodbye![/dim]")
                 break
+            if prompt.lower() in ("/reset", "/clear"):
+                memory.clear()
+                print_info("Active conversation context cleared.")
+                continue
 
-            execute_prompt(prompt, dry_run=dry_run, verbose=verbose)
+            response = execute_prompt(
+                prompt,
+                history=memory.messages,
+                dry_run=dry_run,
+                verbose=verbose,
+                store=store,
+                session_id=memory.session_id,
+            )
+            if response and response.messages:
+                memory.update_messages(response.messages)
         except (KeyboardInterrupt, EOFError):
             console.print("\n[dim]Session closed.[/dim]")
             break
 
 
-def execute_prompt(prompt: str, dry_run: bool = False, verbose: bool = False):
-    """Execute a user prompt using the AgentController."""
+def execute_prompt(
+    prompt: str,
+    history: Optional[list] = None,
+    dry_run: bool = False,
+    verbose: bool = False,
+    store: Optional[SQLiteMemoryStore] = None,
+    session_id: Optional[str] = None,
+):
+    """Execute a user prompt using the AgentController and persist history."""
     from pilot.agent.controller import AgentController
     from pilot.tools.base import ToolResult
 
@@ -120,9 +143,33 @@ def execute_prompt(prompt: str, dry_run: bool = False, verbose: bool = False):
     )
 
     with console.status("[bold cyan]Pilot is analyzing...", spinner="dots"):
-        response = controller.run(prompt, dry_run=dry_run, verbose=verbose)
+        response = controller.run(prompt, history=history, dry_run=dry_run, verbose=verbose)
 
     console.print(f"\n[bold green]Pilot:[/bold green]\n{response.final_answer}\n")
+
+    # Record command execution in persistent SQLite store
+    memory_store = store or SQLiteMemoryStore()
+    sid = session_id or "default"
+    if response.tool_calls_made:
+        for record in response.tool_calls_made:
+            memory_store.record_command(
+                session_id=sid,
+                query=prompt,
+                tool_name=record.tool_name,
+                arguments=record.arguments,
+                success=record.result.success,
+                output_summary=record.result.stdout or record.result.error,
+            )
+    else:
+        memory_store.record_command(
+            session_id=sid,
+            query=prompt,
+            tool_name=None,
+            arguments=None,
+            success=response.completed,
+            output_summary=response.final_answer[:100],
+        )
+
     return response
 
 
@@ -248,25 +295,47 @@ def explain(command: str = typer.Argument(..., help="The shell command to explai
 
 
 @app.command(name="history")
-def show_history():
+def show_history(
+    limit: int = typer.Option(20, "--limit", "-n", help="Number of recent records to display.")
+):
     """View previous agent queries and executed actions."""
     settings = get_settings()
     console.print(f"[bold]Command History[/bold] (Database: {settings.db_path})\n")
-    if not settings.db_path.exists():
+    store = SQLiteMemoryStore(db_path=settings.db_path)
+    records = store.get_history(limit=limit)
+
+    if not records:
         console.print("[dim]No persistent history recorded yet.[/dim]")
-    else:
-        console.print("[dim]Memory store connected.[/dim]")
+        return
+
+    table = Table(title=f"Recent Executions (Last {len(records)})", border_style="dim", header_style="bold cyan")
+    table.add_column("Timestamp", style="dim")
+    table.add_column("Query", style="bold")
+    table.add_column("Tool", style="yellow")
+    table.add_column("Status")
+
+    import time
+    for r in records:
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(r["timestamp"]))
+        tool_display = r["tool_name"] or "(direct)"
+        status_display = "[green]Success[/green]" if r["success"] else "[red]Failed[/red]"
+        table.add_row(ts, r["query"][:50], tool_display, status_display)
+
+    console.print(table)
 
 
 @app.command(name="reset-memory")
 def reset_memory():
     """Reset persistent agent memory and command history."""
     settings = get_settings()
+    store = SQLiteMemoryStore(db_path=settings.db_path)
+    store.reset_memory()
     if settings.db_path.exists():
-        settings.db_path.unlink()
-        print_success(f"Persistent memory database reset successfully: {settings.db_path}")
-    else:
-        print_info("Memory store is already empty.")
+        try:
+            settings.db_path.unlink()
+        except Exception:
+            pass
+    print_success(f"Persistent memory database reset successfully: {settings.db_path}")
 
 
 if __name__ == "__main__":
