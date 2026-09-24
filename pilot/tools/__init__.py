@@ -8,6 +8,21 @@ from pilot.tools.filesystem import (
     WriteFileTool,
 )
 from pilot.tools.network import NetworkInfoTool
+from pilot.tools.packages import (
+    AptPackageManager,
+    DnfPackageManager,
+    PackageManager,
+    PackageCheckInstalledTool,
+    PackageInstallTool,
+    PackageRemoveTool,
+    PackageResult,
+    PackageSearchTool,
+    PackageUpdateTool,
+    PacmanPackageManager,
+    Result,
+    detect_package_manager,
+    validate_package_name,
+)
 from pilot.tools.registry import ToolRegistry, default_registry
 from pilot.tools.system import (
     DiskUsageTool,
@@ -28,16 +43,30 @@ def register_safe_tools(registry: ToolRegistry) -> None:
     registry.register(ListDirectoryTool())
     registry.register(ReadFileTool())
     registry.register(SearchFilesTool())
+    registry.register(PackageCheckInstalledTool())
+    registry.register(PackageSearchTool())
+
+
+def register_package_tools(registry: ToolRegistry) -> None:
+    """Register package manager inspection and management tools."""
+    registry.register(PackageCheckInstalledTool())
+    registry.register(PackageSearchTool())
+    registry.register(PackageInstallTool())
+    registry.register(PackageRemoveTool())
+    registry.register(PackageUpdateTool())
 
 
 def register_all_baseline_tools(registry: ToolRegistry) -> None:
-    """Register all 10 baseline MVP tools."""
+    """Register all baseline and package tools."""
     register_safe_tools(registry)
     registry.register(WriteFileTool())
+    registry.register(PackageInstallTool())
+    registry.register(PackageRemoveTool())
+    registry.register(PackageUpdateTool())
     registry.register(ExecuteCommandTool())
 
 
-# Auto-populate the global default registry with all 10 baseline tools
+# Auto-populate the global default registry with all tools
 register_all_baseline_tools(default_registry)
 
 __all__ = [
@@ -56,6 +85,20 @@ __all__ = [
     "SearchFilesTool",
     "WriteFileTool",
     "ExecuteCommandTool",
+    "PackageManager",
+    "PackageResult",
+    "Result",
+    "AptPackageManager",
+    "DnfPackageManager",
+    "PacmanPackageManager",
+    "detect_package_manager",
+    "validate_package_name",
+    "PackageCheckInstalledTool",
+    "PackageSearchTool",
+    "PackageInstallTool",
+    "PackageRemoveTool",
+    "PackageUpdateTool",
     "register_safe_tools",
+    "register_package_tools",
     "register_all_baseline_tools",
 ]
