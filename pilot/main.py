@@ -56,7 +56,7 @@ def main(
     if ctx.invoked_subcommand is not None:
         return
 
-    # No subcommand passed: start interactive session or handle prompt
+    # No subcommand passed: start interactive session
     settings = get_settings()
     print_banner(version=__version__, model=settings.model)
 
@@ -64,6 +64,16 @@ def main(
         print_warning("Running in DRY-RUN mode: No modifications will be made to your system.")
 
     run_interactive_shell(dry_run=dry_run, verbose=verbose)
+
+
+@app.command(name="ask")
+def ask(
+    prompt: str = typer.Argument(..., help="Natural-language request or question."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Plan-only mode with zero side-effects."),
+    verbose: bool = typer.Option(False, "--verbose", help="Show full plan, tool, and security pipeline."),
+):
+    """Execute a single request directly without entering interactive mode."""
+    execute_prompt(prompt, dry_run=dry_run, verbose=verbose)
 
 
 def run_interactive_shell(dry_run: bool, verbose: bool):
@@ -85,12 +95,35 @@ def run_interactive_shell(dry_run: bool, verbose: bool):
 
 
 def execute_prompt(prompt: str, dry_run: bool = False, verbose: bool = False):
-    """Execute a single-shot user prompt."""
+    """Execute a user prompt using the AgentController."""
+    from pilot.agent.controller import AgentController
+    from pilot.tools.base import ToolResult
+
     if verbose:
         print_info(f"Processing request: '{prompt}' (dry_run={dry_run})")
-    # Placeholder for AgentController integration (Phase 6)
-    console.print(f"[bold green]Pilot:[/bold green] Received request: [italic]{prompt}[/italic]")
-    console.print("[dim](Agent controller will process this request in Phase 6)[/dim]")
+
+    def on_tool_start(tool_name: str, args: dict):
+        if verbose:
+            print_info(f"Invoking tool: [cyan]{tool_name}[/cyan] with arguments: {args}")
+        else:
+            console.print(f"[dim]• Running {tool_name}...[/dim]")
+
+    def on_tool_end(tool_name: str, result: ToolResult):
+        if verbose:
+            status_color = "green" if result.success else "red"
+            msg = result.format_for_llm().replace("\n", " ")[:100]
+            console.print(f"[{status_color}]  ↳ Result: {msg}... ({result.duration}s)[/{status_color}]")
+
+    controller = AgentController(
+        on_tool_start=on_tool_start,
+        on_tool_end=on_tool_end,
+    )
+
+    with console.status("[bold cyan]Pilot is analyzing...", spinner="dots"):
+        response = controller.run(prompt, dry_run=dry_run, verbose=verbose)
+
+    console.print(f"\n[bold green]Pilot:[/bold green]\n{response.final_answer}\n")
+    return response
 
 
 @app.command(name="doctor")
