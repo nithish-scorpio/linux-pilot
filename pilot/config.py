@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     verbose: bool = Field(default=False, validation_alias="VERBOSE")
 
     # Filesystem security defaults
-    allowed_paths: List[str] = Field(
+    allowed_paths: Union[List[str], str] = Field(
         default_factory=lambda: [str(Path.cwd().resolve())],
         validation_alias="ALLOWED_PATHS",
     )
@@ -44,15 +44,25 @@ class Settings(BaseSettings):
         validation_alias="DB_PATH",
     )
 
-    @field_validator("allowed_paths", mode="before")
+    @field_validator("allowed_paths")
     @classmethod
     def parse_allowed_paths(cls, v: Union[str, List[str]]) -> List[str]:
-        """Support comma or colon-separated paths in environment variables."""
+        """Support comma or colon-separated paths or JSON list in environment variables."""
         if isinstance(v, str):
-            delimiter = ":" if ":" in v and not v.startswith("http") else ","
-            parts = [p.strip() for p in v.split(delimiter) if p.strip()]
+            v_str = v.strip()
+            if v_str.startswith("[") and v_str.endswith("]"):
+                import json
+
+                try:
+                    parsed = json.loads(v_str)
+                    if isinstance(parsed, list):
+                        return [str(p).strip() for p in parsed if str(p).strip()]
+                except Exception:
+                    pass
+            delimiter = ":" if ":" in v_str and not v_str.startswith("http") else ","
+            parts = [p.strip() for p in v_str.split(delimiter) if p.strip()]
             return parts or [str(Path.cwd().resolve())]
-        return v
+        return [str(p) for p in v]
 
     def check_ollama_connection(self, timeout: float = 3.0) -> dict:
         """Verify reachability of the Ollama service and configured model.

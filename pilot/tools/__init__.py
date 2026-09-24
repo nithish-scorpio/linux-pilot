@@ -1,6 +1,12 @@
 """Tool system package."""
 
 from pilot.tools.base import BaseTool, RiskTier, ToolResult
+from pilot.tools.filesystem import (
+    ListDirectoryTool,
+    ReadFileTool,
+    SearchFilesTool,
+    WriteFileTool,
+)
 from pilot.tools.network import NetworkInfoTool
 from pilot.tools.registry import ToolRegistry, default_registry
 from pilot.tools.system import (
@@ -19,15 +25,19 @@ def register_safe_tools(registry: ToolRegistry) -> None:
     registry.register(MemoryUsageTool())
     registry.register(ProcessListTool())
     registry.register(NetworkInfoTool())
+    registry.register(ListDirectoryTool())
+    registry.register(ReadFileTool())
+    registry.register(SearchFilesTool())
 
 
 def register_all_baseline_tools(registry: ToolRegistry) -> None:
-    """Register baseline safe tools and terminal command tool."""
+    """Register all 10 baseline MVP tools."""
     register_safe_tools(registry)
+    registry.register(WriteFileTool())
     registry.register(ExecuteCommandTool())
 
 
-# Auto-populate the global default registry with baseline tools
+# Auto-populate the global default registry with all 10 baseline tools
 register_all_baseline_tools(default_registry)
 
 __all__ = [
@@ -41,6 +51,10 @@ __all__ = [
     "MemoryUsageTool",
     "ProcessListTool",
     "NetworkInfoTool",
+    "ListDirectoryTool",
+    "ReadFileTool",
+    "SearchFilesTool",
+    "WriteFileTool",
     "ExecuteCommandTool",
     "register_safe_tools",
     "register_all_baseline_tools",

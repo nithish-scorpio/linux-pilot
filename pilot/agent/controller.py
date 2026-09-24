@@ -8,6 +8,7 @@ from pilot.agent.prompts import build_system_prompt
 from pilot.config import Settings, get_settings
 from pilot.llm.client import LLMProvider, Message, ToolCall
 from pilot.llm.models import get_llm_provider
+from pilot.security.redactor import redact_secrets
 from pilot.tools.base import RiskTier, ToolResult
 from pilot.tools.registry import ToolRegistry, default_registry
 
@@ -166,13 +167,13 @@ class AgentController:
                     )
                 )
 
-                # Append tool result to context
+                # Append sanitized tool result to context (redact secrets before entering LLM context)
                 messages.append(
                     Message(
                         role="tool",
                         name=tool_name,
                         tool_call_id=tc.id or f"call_{step}",
-                        content=tool_result.format_for_llm(),
+                        content=redact_secrets(tool_result.format_for_llm()),
                     )
                 )
 
