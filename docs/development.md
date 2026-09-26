@@ -16,8 +16,8 @@ Welcome to the **Linux Command Pilot** developer and contributor guide. This doc
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-org/linux-command-pilot.git
-cd linux-command-pilot
+git clone https://github.com/nithish-scorpio/linux-pilot.git
+cd linux-pilot
 
 # 2. Create virtual environment
 python3 -m venv .venv

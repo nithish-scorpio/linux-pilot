@@ -77,8 +77,8 @@ Linux Command Pilot is an agentic-AI developer assistant engineered specifically
 ### 1. Clone & Set Up Virtual Environment
 
 ```bash
-git clone https://github.com/your-org/linux-command-pilot.git
-cd linux-command-pilot
+git clone https://github.com/nithish-scorpio/linux-pilot.git
+cd linux-pilot
 
 python3 -m venv .venv
 source .venv/bin/activate
