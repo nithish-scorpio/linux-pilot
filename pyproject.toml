@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "linux-command-pilot"
+name = "linux-pilot"
 version = "0.1.0"
 description = "A local, privacy-focused AI agent that safely inspects, diagnoses, and interacts with Linux OS through controlled tools."
 readme = "README.md"
@@ -29,6 +29,10 @@ dev = [
 
 [project.scripts]
 pilot = "pilot.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pilot*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

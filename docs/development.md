@@ -46,7 +46,7 @@ pytest -m "not integration" -v
 ## 2. Project Directory Structure
 
 ```
-linux-command-pilot/
+linux-pilot/
 ├── pilot/
 │   ├── agent/               # AgentController and conversation orchestration
 │   ├── config.py            # Pydantic Settings and environment configuration

@@ -108,7 +108,7 @@ Running Linux Command Pilot Doctor...
 ✓ Security policy (3-tier architecture with argv validator)
 ✓ Configuration & Allowed Paths
 ✓ Package Manager (apt on debian/ubuntu)
-✓ Persistent Memory Store (SQLite at ~/.config/linux-command-pilot/pilot.db)
+✓ Persistent Memory Store (SQLite at ~/.config/linux-pilot/pilot.db)
 
 ✓ Linux Command Pilot is ready.
 ```
@@ -207,7 +207,7 @@ Configuration is loaded from environment variables or `.env`:
 | `DRY_RUN` | `false` | Force dry-run simulation mode |
 | `VERBOSE` | `false` | Enable detailed step-by-step pipeline logging |
 | `ALLOWED_PATHS` | Current working directory | Permitted directories for filesystem tools |
-| `DB_PATH` | `~/.config/linux-command-pilot/pilot.db` | Persistent SQLite memory database file |
+| `DB_PATH` | `~/.config/linux-pilot/pilot.db` | Persistent SQLite memory database file |
 
 ---
 

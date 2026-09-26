@@ -127,7 +127,7 @@ The security layer operates independently between the LLM and the OS:
 
 ### 2.6 Memory & Persistence Subsystem (`pilot/memory/`)
 - `ConversationMemory`: Short-term in-memory sliding window holding recent dialog turns. Enables multi-turn context and pronoun resolution.
-- `SQLiteMemoryStore`: Persistent SQLite store (`~/.config/linux-command-pilot/pilot.db`):
+- `SQLiteMemoryStore`: Persistent SQLite store (`~/.config/linux-pilot/pilot.db`):
   - Tables: `sessions`, `messages`, `command_history`.
   - Zero-Secret Guarantee: Recursively passes all message contents, arguments, and outputs through `redact_secrets()` prior to executing database write operations.
   - Vacuum & compaction support via `reset_memory()`.

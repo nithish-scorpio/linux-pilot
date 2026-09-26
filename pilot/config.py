@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # SQLite memory store location
     db_path: Path = Field(
-        default_factory=lambda: Path.home() / ".config" / "linux-command-pilot" / "pilot.db",
+        default_factory=lambda: Path.home() / ".config" / "linux-pilot" / "pilot.db",
         validation_alias="DB_PATH",
     )
 
