@@ -36,13 +36,28 @@ class OllamaProvider(LLMProvider):
         self.model = model
         self.host = host.rstrip("/")
         self.timeout = timeout
+        self._client: Optional[httpx.Client] = None
+
+    @property
+    def client(self) -> httpx.Client:
+        """Get or initialize the persistent HTTP client with connection pooling."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.Client(
+                timeout=self.timeout,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            )
+        return self._client
+
+    def close(self) -> None:
+        """Close the persistent HTTP client session."""
+        if self._client and not self._client.is_closed:
+            self._client.close()
 
     def is_available(self) -> bool:
         """Verify reachability of the Ollama service."""
         try:
-            with httpx.Client(timeout=3.0) as client:
-                res = client.get(f"{self.host}/api/tags")
-                return res.status_code == 200
+            res = self.client.get(f"{self.host}/api/tags", timeout=3.0)
+            return res.status_code == 200
         except Exception:
             return False
 
@@ -71,8 +86,11 @@ class OllamaProvider(LLMProvider):
             "model": self.model,
             "messages": formatted_messages,
             "stream": False,
+            "keep_alive": "30m",
             "options": {
                 "temperature": temperature,
+                "num_ctx": 2048,
+                "think": False,
             },
         }
 
@@ -84,8 +102,7 @@ class OllamaProvider(LLMProvider):
             payload["tools"] = [t.model_dump() for t in tools]
 
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.post(url, json=payload)
+            response = self.client.post(url, json=payload)
         except httpx.ConnectError as e:
             raise LLMConnectionError(f"Failed to connect to Ollama at {self.host}: {e}") from e
         except httpx.TimeoutException as e:

@@ -72,13 +72,46 @@ REDACTION_RULES: List[Tuple[Pattern, str]] = [
 ]
 
 
+from pilot.telemetry import record_redaction
+
+# Fast substring filter hints to bypass expensive regex passes when absent
+SECRET_HINTS = (
+    "begin",
+    "akia",
+    "asia",
+    "secret",
+    "ghp_",
+    "gho_",
+    "ghu_",
+    "ghs_",
+    "ghr_",
+    "authorization",
+    "bearer",
+    "api_key",
+    "apikey",
+    "api-key",
+    "access_token",
+    "auth_token",
+    "password",
+    "passwd",
+    "pwd",
+    "://",
+    "export",
+)
+
+
 def redact_secrets(text: str) -> str:
     """Scan text and redact sensitive secrets according to configured rules."""
     if not text:
         return text
 
-    sanitized = text
-    for pattern, replacement in REDACTION_RULES:
-        sanitized = pattern.sub(replacement, sanitized)
+    with record_redaction():
+        lower = text.lower()
+        if not any(h in lower for h in SECRET_HINTS):
+            return text
 
-    return sanitized
+        sanitized = text
+        for pattern, replacement in REDACTION_RULES:
+            sanitized = pattern.sub(replacement, sanitized)
+
+        return sanitized

@@ -37,10 +37,21 @@ def main():
         default=Path(__file__).parent / "tasks.jsonl",
         help="Path to tasks.jsonl dataset.",
     )
+    parser.add_argument(
+        "--agent",
+        "-a",
+        action="store_true",
+        help="Execute benchmark tasks through active AgentController.",
+    )
 
     args = parser.parse_args()
 
-    evaluator = BenchmarkEvaluator(dataset_path=args.dataset)
+    controller = None
+    if args.agent:
+        from pilot.agent.controller import AgentController
+        controller = AgentController()
+
+    evaluator = BenchmarkEvaluator(dataset_path=args.dataset, controller=controller)
     report = evaluator.run_evaluation(category=args.category, limit=args.limit)
     report.print_summary()
 

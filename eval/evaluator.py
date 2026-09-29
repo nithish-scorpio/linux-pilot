@@ -174,7 +174,7 @@ class BenchmarkEvaluator:
         # If a controller is provided, execute task through agent
         if self.controller:
             try:
-                resp = self.controller.run(task.input)
+                resp = self.controller.run(task.input, dry_run=True)
                 latency = time.perf_counter() - start_time
                 tools_used = [tc.tool_name for tc in resp.tool_calls_made]
 
