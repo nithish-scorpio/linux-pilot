@@ -29,7 +29,7 @@ class OllamaProvider(LLMProvider):
 
     def __init__(
         self,
-        model: str = "qwen3:4b",
+        model: str = "qwen2.5:3b",
         host: str = "http://localhost:11434",
         timeout: float = 300.0,
     ):

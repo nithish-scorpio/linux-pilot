@@ -159,16 +159,41 @@ class FastPathRouter:
         )):
             return [("package_update", {})]
 
-        # 11. Filesystem: List Directory
-        # Matches: "List files in the current working directory.", "List files in directory ./pilot."
-        if "list files in directory" in lower or "list files in the current" in lower or "list files in" in lower or "list subdirectories in" in lower or "list directories in" in lower:
+        # 11. Filesystem: List Directory / Show Files
+        if any(k in lower for k in (
+            "list files",
+            "show all files",
+            "show files",
+            "list directory",
+            "list subdirectories",
+            "list directories",
+            "show directory contents",
+        )):
             target_dir = "."
-            m_dir = re.search(r"(?:in directory|in)\s+([^\s,]+)", text, re.IGNORECASE)
+            m_dir = re.search(r"(?:in directory|in|of)\s+([^\s,]+)", text, re.IGNORECASE)
             if m_dir:
                 extracted = m_dir.group(1).rstrip(".,;")
-                if extracted.lower() not in ("the", "this", "current"):
+                if extracted.lower() not in ("the", "this", "current", "all"):
                     target_dir = extracted
             return [("list_directory", {"path": target_dir})]
+
+        # 11b. Filesystem: Current Working Directory
+        if any(k in lower for k in (
+            "current working directory",
+            "show current directory",
+            "print current directory",
+            "what is my directory",
+            "what directory am i in",
+            "pwd",
+        )) or lower.strip() in ("current directory", "working directory"):
+            return [("execute_command", {"command": "pwd"})]
+
+        # 11c. Filesystem: Create Folder / Directory
+        m_mkdir = re.search(r"(?:create|make)\s+(?:a\s+)?(?:folder|directory)\s+(?:called\s+|named\s+)?([^\s,]+)", text, re.IGNORECASE)
+        if m_mkdir:
+            folder_name = m_mkdir.group(1).rstrip(".,;")
+            if folder_name.lower() not in ("in", "for", "with"):
+                return [("execute_command", {"command": f"mkdir -p {folder_name}"})]
 
         # 12. Filesystem: Read File
         m_show_lines = re.search(r"(?:show|read)\s+the first\s+(\d+)\s+lines of\s+([^\s,]+)", text, re.IGNORECASE)
@@ -195,8 +220,7 @@ class FastPathRouter:
                 if target_file.lower() not in ("files", "lines", "the", "error"):
                     return [("read_file", {"path": target_file})]
 
-        # 13. Filesystem: Search Files
-        if "find all python source files" in lower:
+        if "python source files" in lower or "python files" in lower:
             return [("search_files", {"pattern": "*.py"})]
         if "files ending with .md" in lower:
             return [("search_files", {"pattern": "*.md"})]

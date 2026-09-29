@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # LLM Settings
-    model: str = Field(default="qwen3:4b", validation_alias="MODEL")
+    model: str = Field(default="qwen2.5:3b", validation_alias="MODEL")
     ollama_host: str = Field(default="http://localhost:11434", validation_alias="OLLAMA_HOST")
 
     # Execution limits

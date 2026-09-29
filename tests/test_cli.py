@@ -35,7 +35,7 @@ def test_cli_doctor_success(mocker):
         "pilot.config.Settings.check_ollama_connection",
         return_value={
             "connected": True,
-            "models": ["qwen3:4b"],
+            "models": ["qwen2.5:3b"],
             "configured_model_found": True,
             "error": None,
         },
@@ -45,7 +45,7 @@ def test_cli_doctor_success(mocker):
     assert "Linux Command Pilot is ready" in result.stdout
     assert "Python" in result.stdout
     assert "Ollama Service" in result.stdout
-    assert "Model (qwen3:4b)" in result.stdout
+    assert "Model (qwen2.5:3b)" in result.stdout
 
 
 def test_cli_doctor_failure(mocker):

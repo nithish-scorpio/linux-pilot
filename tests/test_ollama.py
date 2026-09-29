@@ -8,7 +8,7 @@ from pilot.config import Settings, get_settings
 def test_settings_defaults():
     """Verify default settings values."""
     settings = Settings()
-    assert settings.model == "qwen3:4b"
+    assert settings.model == "qwen2.5:3b"
     assert settings.ollama_host == "http://localhost:11434"
     assert settings.max_agent_steps == 10
     assert settings.command_timeout == 30
