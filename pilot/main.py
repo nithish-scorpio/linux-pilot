@@ -129,7 +129,11 @@ def execute_prompt(
     if verbose:
         print_info(f"Processing request: '{prompt}' (dry_run={dry_run})")
 
+    status = console.status("[bold cyan]Pilot is analyzing...", spinner="dots")
+
     def on_tool_start(tool_name: str, args: dict):
+        if status._live and status._live.is_started:
+            status.stop()
         if verbose:
             print_info(f"Invoking tool: [cyan]{tool_name}[/cyan] with arguments: {args}")
         else:
@@ -146,7 +150,7 @@ def execute_prompt(
         on_tool_end=on_tool_end,
     )
 
-    with console.status("[bold cyan]Pilot is analyzing...", spinner="dots"):
+    with status:
         response = controller.run(prompt, history=history, dry_run=dry_run, verbose=verbose)
 
     console.print(f"\n[bold green]Pilot:[/bold green]\n{response.final_answer}\n")

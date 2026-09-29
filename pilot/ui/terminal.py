@@ -77,6 +77,13 @@ def confirm_prompt(command: str, reason: str, risk: str) -> bool:
     Risk:    <what could go wrong>
     Allow? [y/N]
     """
+    # Stop any active Rich live display/status spinner before reading user input
+    live = getattr(console, "_live", None)
+    was_live = False
+    if live and live.is_started:
+        live.stop()
+        was_live = True
+
     console.print()
     content = (
         f"[bold]Command:[/bold] [yellow]{command}[/yellow]\n"
@@ -87,7 +94,12 @@ def confirm_prompt(command: str, reason: str, risk: str) -> bool:
 
     try:
         response = console.input("[bold yellow]Allow? [y/N]: [/bold yellow]").strip().lower()
-        return response in ("y", "yes")
+        res = response in ("y", "yes")
     except (KeyboardInterrupt, EOFError):
         console.print("\n[dim]Aborted by user.[/dim]")
-        return False
+        res = False
+    finally:
+        if was_live and live:
+            live.start()
+
+    return res
