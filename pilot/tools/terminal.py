@@ -4,6 +4,7 @@ import subprocess
 import time
 from typing import Any, Callable, Dict, Optional
 
+from pilot.config import get_settings
 from pilot.security.permissions import CommandRiskClassification, RiskTier
 from pilot.security.validator import SecurityValidator
 from pilot.tools.base import BaseTool, ToolResult
@@ -62,18 +63,20 @@ class ExecuteCommandTool(BaseTool):
                 error=f"SECURITY ERROR: Command BLOCKED by policy: {classification.risk_description}",
             )
 
-        # 3. CONFIRM tier: Require explicit user approval
+        # 3. CONFIRM tier: Require explicit user approval unless auto_approve is set
         if classification.tier == RiskTier.CONFIRM:
-            approved = self.confirm_handler(
-                command,
-                reason,
-                classification.risk_description,
-            )
-            if not approved:
-                return ToolResult(
-                    success=False,
-                    error=f"Operation cancelled: User denied permission to execute '{command}'",
+            settings = get_settings()
+            if not getattr(settings, "auto_approve", False):
+                approved = self.confirm_handler(
+                    command,
+                    reason,
+                    classification.risk_description,
                 )
+                if not approved:
+                    return ToolResult(
+                        success=False,
+                        error=f"Operation cancelled: User denied permission to execute '{command}'",
+                    )
 
         # 4. Safe or Confirmed: Execute bounded by timeout and without interactive stdin
         start_time = time.perf_counter()

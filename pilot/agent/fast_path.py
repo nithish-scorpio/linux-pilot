@@ -193,7 +193,7 @@ class FastPathRouter:
         if m_mkdir:
             folder_name = m_mkdir.group(1).rstrip(".,;")
             if folder_name.lower() not in ("in", "for", "with"):
-                return [("execute_command", {"command": f"mkdir -p {folder_name}"})]
+                return [("execute_command", {"command": f"mkdir -p {folder_name}", "reason": f"Create directory '{folder_name}'"})]
 
         # 12. Filesystem: Read File
         m_show_lines = re.search(r"(?:show|read)\s+the first\s+(\d+)\s+lines of\s+([^\s,]+)", text, re.IGNORECASE)

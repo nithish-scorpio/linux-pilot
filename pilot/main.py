@@ -3,6 +3,7 @@
 Provides CLI commands and interactive agent shell.
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -45,6 +46,7 @@ def main(
     version: Optional[bool] = typer.Option(
         None, "--version", "-v", callback=version_callback, is_eager=True, help="Show version and exit."
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Automatically approve modifying commands without prompting."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Plan-only mode with zero side-effects."),
     verbose: bool = typer.Option(False, "--verbose", help="Show full plan, tool, and security pipeline."),
 ):
@@ -56,17 +58,24 @@ def main(
     ctx.ensure_object(dict)
     ctx.obj["dry_run"] = dry_run
     ctx.obj["verbose"] = verbose
+    ctx.obj["yes"] = yes
+
+    settings = get_settings()
+    if yes:
+        os.environ["AUTO_APPROVE"] = "true"
+        settings.auto_approve = True
 
     # If a subcommand (like doctor, config, etc.) is being invoked, let it proceed
     if ctx.invoked_subcommand is not None:
         return
 
     # No subcommand passed: start interactive session
-    settings = get_settings()
     print_banner(version=__version__, model=settings.model)
 
     if dry_run:
         print_warning("Running in DRY-RUN mode: No modifications will be made to your system.")
+    if yes:
+        print_warning("Auto-approve (-y) enabled: Confirm-tier commands will execute automatically.")
 
     run_interactive_shell(dry_run=dry_run, verbose=verbose)
 
@@ -74,10 +83,14 @@ def main(
 @app.command(name="ask")
 def ask(
     prompt: str = typer.Argument(..., help="Natural-language request or question."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Automatically approve modifying commands without prompting."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Plan-only mode with zero side-effects."),
     verbose: bool = typer.Option(False, "--verbose", help="Show full plan, tool, and security pipeline."),
 ):
     """Execute a single request directly without entering interactive mode."""
+    if yes:
+        os.environ["AUTO_APPROVE"] = "true"
+        get_settings().auto_approve = True
     execute_prompt(prompt, dry_run=dry_run, verbose=verbose)
 
 

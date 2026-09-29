@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
     dry_run: bool = Field(default=False, validation_alias="DRY_RUN")
     verbose: bool = Field(default=False, validation_alias="VERBOSE")
+    auto_approve: bool = Field(default=False, validation_alias="AUTO_APPROVE")
 
     # Filesystem security defaults
     allowed_paths: Union[List[str], str] = Field(
