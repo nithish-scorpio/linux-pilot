@@ -37,11 +37,20 @@ class FastPathRouter:
         )):
             return None
 
-        # 1. System Info & Hardware & Kernel & Uptime & Distro
+        # Compound: CPU load and RAM / Memory inspection
+        has_cpu = any(k in lower for k in ("cpu load", "cpu usage", "system load", "load average", "processor load", "cpu"))
+        has_ram = any(k in lower for k in ("ram", "memory", "swap"))
+        if has_cpu and has_ram and not any(k in lower for k in ("process", "top", "most", "who", "which")):
+            return [("system_info", {}), ("memory_usage", {})]
+
+        # 1. System Info & Hardware & Kernel & Uptime & Distro & CPU Load
         if any(k in lower for k in (
             "kernel version",
             "cpu architecture",
             "core count",
+            "cpu load",
+            "system load",
+            "load average",
             "how long has this machine been running",
             "system uptime",
             "uptime and load average",
