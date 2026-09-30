@@ -195,6 +195,37 @@ class FastPathRouter:
             if folder_name.lower() not in ("in", "for", "with"):
                 return [("execute_command", {"command": f"mkdir -p {folder_name}", "reason": f"Create directory '{folder_name}'"})]
 
+        # 11d. Filesystem: Rename / Move File or Directory
+        m_mv = re.search(r"(?:rename|move)\s+(?:file\s+|folder\s+|directory\s+)?([^\s,]+)\s+(?:to|as|into)\s+([^\s,]+)", text, re.IGNORECASE)
+        if m_mv:
+            src = m_mv.group(1).rstrip(".,;")
+            dst = m_mv.group(2).rstrip(".,;")
+            return [("execute_command", {"command": f"mv {src} {dst}", "reason": f"Rename '{src}' to '{dst}'"})]
+
+        # 11e. Filesystem: Copy File or Directory
+        m_cp = re.search(r"(?:copy|duplicate)\s+(?:file\s+|folder\s+|directory\s+)?([^\s,]+)\s+(?:to|into)\s+([^\s,]+)", text, re.IGNORECASE)
+        if m_cp:
+            src = m_cp.group(1).rstrip(".,;")
+            dst = m_cp.group(2).rstrip(".,;")
+            return [("execute_command", {"command": f"cp -r {src} {dst}", "reason": f"Copy '{src}' to '{dst}'"})]
+
+        # 11f. Filesystem: Delete / Remove single file
+        if not any(k in lower for k in ("package", "obsolete", "unused", "directory", "folder", "all", "the")):
+            m_rm = re.search(r"(?:delete|remove)\s+(?:file\s+)?([a-zA-Z0-9_\-\.\/]+\.[a-zA-Z0-9]+)$", text, re.IGNORECASE)
+            if not m_rm:
+                m_rm = re.search(r"(?:delete|remove)\s+file\s+([a-zA-Z0-9_\-\.\/]+)$", text, re.IGNORECASE)
+            if m_rm:
+                target = m_rm.group(1).rstrip(".,;")
+                if "/" not in target or target.startswith("./"):
+                    return [("execute_command", {"command": f"rm {target}", "reason": f"Delete file '{target}'"})]
+
+        # 11g. Filesystem: Create empty file / touch
+        m_touch = re.search(r"(?:create\s+(?:a\s+)?(?:empty\s+)?file|touch)\s+(?:called\s+|named\s+)?([^\s,]+)", text, re.IGNORECASE)
+        if m_touch:
+            fname = m_touch.group(1).rstrip(".,;")
+            if fname.lower() not in ("in", "for", "with"):
+                return [("execute_command", {"command": f"touch {fname}", "reason": f"Create empty file '{fname}'"})]
+
         # 12. Filesystem: Read File
         m_show_lines = re.search(r"(?:show|read)\s+the first\s+(\d+)\s+lines of\s+([^\s,]+)", text, re.IGNORECASE)
         if m_show_lines:

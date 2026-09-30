@@ -178,6 +178,12 @@ class AgentController:
                             )
                         )
                         output_str = t_res.stdout or t_res.error or ""
+                        if not output_str and t_res.success:
+                            if t_name == "execute_command":
+                                cmd = t_args.get("command", "")
+                                output_str = f"Executed '{cmd}' successfully."
+                            else:
+                                output_str = "Operation completed successfully."
                         final_outputs.append(redact_secrets(output_str))
             else:
                 for tool_name, tool_args in fast_path_actions:
@@ -209,6 +215,12 @@ class AgentController:
                         )
                     )
                     output_str = tool_result.stdout or tool_result.error or ""
+                    if not output_str and tool_result.success:
+                        if tool_name == "execute_command":
+                            cmd = tool_args.get("command", "")
+                            output_str = f"Executed '{cmd}' successfully."
+                        else:
+                            output_str = "Operation completed successfully."
                     final_outputs.append(redact_secrets(output_str))
 
             combined_answer = "\n\n".join(filter(None, final_outputs)) or "Operation completed successfully."

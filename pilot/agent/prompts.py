@@ -35,4 +35,11 @@ def build_system_prompt(dry_run: bool = False) -> str:
             "step-by-step PLAN of what actions would be performed. State clearly that no changes were made.\n"
         )
 
-    return f"{BASE_SYSTEM_PROMPT}{env_context}{mode_notice}"
+    tool_guidance = (
+        "\nTool Execution Instructions:\n"
+        "- When the user asks you to perform an action (e.g. rename, move, delete, copy, create directories or files, run commands),\n"
+        "  you MUST call the appropriate tool (such as execute_command) rather than telling the user to run the command themselves.\n"
+        "- Never refuse an action by saying you lack capabilities if execute_command can run the command.\n"
+    )
+
+    return f"{BASE_SYSTEM_PROMPT}{env_context}{mode_notice}{tool_guidance}"
