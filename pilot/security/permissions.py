@@ -51,6 +51,8 @@ SAFE_BINARIES: Set[str] = {
     "dmesg",
     "which",
     "whereis",
+    "env",
+    "printenv",
     "date",
     "hostname",
     "id",

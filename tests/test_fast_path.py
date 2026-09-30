@@ -60,3 +60,16 @@ def test_fast_path_file_rename():
     assert res is not None
     assert res[0][0] == "execute_command"
     assert res[0][1]["command"] == "mv test.txt notes.txt"
+
+
+def test_fast_path_environment_variables():
+    """Verify environment variable queries route deterministically."""
+    res = FastPathRouter.match("Show all environment variables containing PATH.")
+    assert res is not None
+    assert res[0][0] == "execute_command"
+    assert "env | grep -i PATH" in res[0][1]["command"]
+
+    res_single = FastPathRouter.match("What is my path")
+    assert res_single is not None
+    assert res_single[0][0] == "execute_command"
+    assert "printenv PATH" in res_single[0][1]["command"]

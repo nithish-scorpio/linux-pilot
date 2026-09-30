@@ -51,6 +51,24 @@ class FastPathRouter:
         )):
             return [("system_info", {})]
 
+        # 1b. Environment Variables
+        if any(k in lower for k in ("environment variable", "environment variables", "env var", "env vars")):
+            m_contain = re.search(r"(?:containing|matching|with|having)\s+([a-zA-Z0-9_\-]+)", text, re.IGNORECASE)
+            if m_contain:
+                pattern = m_contain.group(1).strip()
+                return [("execute_command", {"command": f"env | grep -i {pattern}", "reason": f"Show environment variables containing '{pattern}'"})]
+
+            m_specific = re.search(r"(?:variable|var)\s+([a-zA-Z0-9_]+)", text, re.IGNORECASE)
+            if m_specific:
+                vname = m_specific.group(1).strip()
+                if vname.lower() not in ("containing", "called", "named", "with", "in", "the", "all"):
+                    return [("execute_command", {"command": f"printenv {vname}", "reason": f"Show environment variable '{vname}'"})]
+
+            return [("execute_command", {"command": "printenv", "reason": "List all environment variables"})]
+
+        if lower.strip() in ("show path", "print path", "what is my path", "echo $path", "display path"):
+            return [("execute_command", {"command": "printenv PATH", "reason": "Show PATH environment variable"})]
+
         # 2. Process List (Check before generic memory check!)
         if any(k in lower for k in (
             "top 5 processes",

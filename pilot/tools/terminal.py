@@ -96,8 +96,8 @@ class ExecuteCommandTool(BaseTool):
             stdout = res.stdout
             error = None
             if not success:
-                cmd_base = command.strip().split()[0].split("/")[-1] if command.strip() else ""
-                if cmd_base in ("lsof", "grep", "fuser") and res.returncode == 1 and not res.stderr.strip():
+                last_subcmd = command.strip().split("|")[-1].strip().split()[0].split("/")[-1] if command.strip() else ""
+                if last_subcmd in ("lsof", "grep", "fuser") and res.returncode == 1 and not res.stderr.strip():
                     success = True
                     stdout = stdout or "(No matching processes or entries found)"
                 else:
