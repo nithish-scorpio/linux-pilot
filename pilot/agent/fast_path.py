@@ -260,6 +260,29 @@ class FastPathRouter:
             if fname.lower() not in ("in", "for", "with"):
                 return [("execute_command", {"command": f"touch {fname}", "reason": f"Create empty file '{fname}'"})]
 
+        # 11h. Filesystem: Largest / Biggest Files
+        if any(k in lower for k in ("largest files", "largest file", "biggest files", "biggest file")):
+            m_lrg = re.search(r"(?:find|show|list|what\s+are\s+the|get)?\s*(?:the\s+)?(\w+|\d+)?\s*(?:largest|biggest)\s+files?(?:\s+in\s+(.+))?", text, re.IGNORECASE)
+            limit = 5
+            target = "."
+            if m_lrg:
+                word_to_num = {
+                    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+                    "fifteen": 15, "twenty": 20
+                }
+                num_raw = (m_lrg.group(1) or "5").lower()
+                limit = word_to_num.get(num_raw, int(num_raw) if num_raw.isdigit() else 5)
+                raw_target = (m_lrg.group(2) or "").strip().rstrip(".,;")
+                if any(h in raw_target.lower() for h in ("home", "~")):
+                    target = "~"
+                elif any(c in raw_target.lower() for c in ("current", "this", "here")):
+                    target = "."
+                elif raw_target:
+                    target = raw_target
+            cmd = f"find {target} -type f -printf '%s\\t%p\\n' 2>/dev/null | sort -rn | head -n {limit} | numfmt --to=iec"
+            return [("execute_command", {"command": cmd, "reason": f"Find top {limit} largest files in '{target}'"})]
+
         # 12. Filesystem: Read File
         m_show_lines = re.search(r"(?:show|read)\s+the first\s+(\d+)\s+lines of\s+([^\s,]+)", text, re.IGNORECASE)
         if m_show_lines:

@@ -57,6 +57,7 @@ SAFE_BINARIES: Set[str] = {
     "hostname",
     "id",
     "wc",
+    "numfmt",
     "stat",
     "file",
     "diff",

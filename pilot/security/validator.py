@@ -74,12 +74,13 @@ class SecurityValidator:
                 )
 
         # 2. Check for output redirections (write operations)
-        has_redirection = bool(re.search(r"(?:>>?|2>&1|&>)", cmd))
+        clean_cmd_redir = re.sub(r">\s*/dev/null|2>\s*/dev/null|&>\s*/dev/null|>\s*/dev/zero|2>&1|1>&2", "", cmd)
+        has_redirection = bool(re.search(r"(?:>>?|&>)", clean_cmd_redir))
 
         # Check if redirection targets sensitive paths
         if has_redirection:
             for s_path in SENSITIVE_PATHS:
-                if s_path in cmd:
+                if s_path in clean_cmd_redir:
                     return CommandRiskClassification(
                         tier=RiskTier.BLOCKED,
                         command_str=command_str,

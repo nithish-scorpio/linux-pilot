@@ -73,3 +73,12 @@ def test_fast_path_environment_variables():
     assert res_single is not None
     assert res_single[0][0] == "execute_command"
     assert "printenv PATH" in res_single[0][1]["command"]
+
+
+def test_fast_path_largest_files():
+    """Verify largest files queries route deterministically."""
+    res = FastPathRouter.match("find the five largest files in my home directory")
+    assert res is not None
+    assert res[0][0] == "execute_command"
+    assert "find ~ -type f" in res[0][1]["command"]
+    assert "head -n 5" in res[0][1]["command"]
