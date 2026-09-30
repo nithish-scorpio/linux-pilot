@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 import typer
+from rich.markup import escape
 from rich.table import Table
 
 from pilot.config import get_settings
@@ -155,7 +156,7 @@ def execute_prompt(
     def on_tool_end(tool_name: str, result: ToolResult):
         if verbose:
             status_color = "green" if result.success else "red"
-            msg = result.format_for_llm().replace("\n", " ")[:100]
+            msg = escape(result.format_for_llm().replace("\n", " ")[:100])
             console.print(f"[{status_color}]  ↳ Result: {msg}... ({result.duration}s)[/{status_color}]")
 
     controller = AgentController(
@@ -166,7 +167,9 @@ def execute_prompt(
     with status:
         response = controller.run(prompt, history=history, dry_run=dry_run, verbose=verbose)
 
-    console.print(f"\n[bold green]Pilot:[/bold green]\n{response.final_answer}\n")
+    console.print("\n[bold green]Pilot:[/bold green]")
+    console.print(response.final_answer, markup=False)
+    console.print()
 
     # Record command execution in persistent SQLite store
     memory_store = store or SQLiteMemoryStore()

@@ -6,6 +6,7 @@ Provides consistent styling, banners, panels, status output, and confirmation pr
 import sys
 from typing import Any, List, Optional
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -31,23 +32,23 @@ def print_banner(version: str = "0.1.0", model: str = "") -> None:
 
 def print_info(message: str) -> None:
     """Print an informational message."""
-    console.print(f"[blue]ℹ[/blue] {message}")
+    console.print(f"[blue]ℹ[/blue] {escape(message)}")
 
 
 def print_success(message: str) -> None:
     """Print a success message."""
-    console.print(f"[bold green]✓[/bold green] {message}")
+    console.print(f"[bold green]✓[/bold green] {escape(message)}")
 
 
 def print_warning(message: str) -> None:
     """Print a warning message."""
-    console.print(f"[bold yellow]⚠[/bold yellow] {message}")
+    console.print(f"[bold yellow]⚠[/bold yellow] {escape(message)}")
 
 
 def print_error(message: str, to_stderr: bool = False) -> None:
     """Print an error message."""
     target = err_console if to_stderr else console
-    target.print(f"[bold red]✗[/bold red] {message}")
+    target.print(f"[bold red]✗[/bold red] {escape(message)}")
 
 
 def print_plan(steps: List[str]) -> None:
