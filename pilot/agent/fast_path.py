@@ -95,7 +95,14 @@ class FastPathRouter:
                 target_path = "/home"
             return [("disk_usage", {"path": target_path})]
 
-        # 5. Network Info
+        # 5. Network Info & Port Inspection
+        if not any(w in lower for w in ("block", "close", "allow", "deny", "firewall", "ufw", "iptables", "forward")):
+            m_port = re.search(r"(?:(?:which|what|check|find|is|show|inspect|who)?\s*(?:process|service|app|program)?\s*(?:is\s+)?(?:using|listening on|running on|bound to|on|open|in use)?\s*port\s+(\d{1,5})|port\s+(\d{1,5}))", text, re.IGNORECASE)
+            if m_port:
+                port_num = int(m_port.group(1) or m_port.group(2))
+                if 1 <= port_num <= 65535:
+                    return [("network_info", {"port": port_num})]
+
         if any(k in lower for k in (
             "network interfaces",
             "ip addresses",

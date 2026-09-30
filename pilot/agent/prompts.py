@@ -40,6 +40,8 @@ def build_system_prompt(dry_run: bool = False) -> str:
         "- When the user asks you to perform an action (e.g. rename, move, delete, copy, create directories or files, run commands),\n"
         "  you MUST call the appropriate tool (such as execute_command) rather than telling the user to run the command themselves.\n"
         "- Never refuse an action by saying you lack capabilities if execute_command can run the command.\n"
+        "- NEVER prefix read-only diagnostic or inspection commands with 'sudo' (e.g. use lsof, ss, netstat, ps, ip, systemctl status directly without sudo). sudo requires password input and will fail.\n"
+        "- To inspect listening ports or socket status, use network_info(port=...) or execute_command with ss/lsof without sudo.\n"
     )
 
     return f"{BASE_SYSTEM_PROMPT}{env_context}{mode_notice}{tool_guidance}"

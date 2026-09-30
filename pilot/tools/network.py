@@ -16,7 +16,7 @@ class NetworkInfoTool(BaseTool):
     name = "network_info"
     description = (
         "Inspect network interfaces, operational status (UP/DOWN), MAC addresses, "
-        "assigned IPv4/IPv6 addresses, and default gateway routes."
+        "assigned IPv4/IPv6 addresses, default gateway routes, or listening sockets for a specific port."
     )
     risk_tier = RiskTier.SAFE
 
@@ -24,10 +24,76 @@ class NetworkInfoTool(BaseTool):
     def parameters_schema(self) -> Dict[str, Any]:
         return {
             "type": "object",
-            "properties": {},
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "description": "Optional port number to inspect for listening processes and socket status",
+                }
+            },
         }
 
+    def _inspect_port(self, port: int, timeout: float = 10.0) -> ToolResult:
+        """Inspect listening processes and socket status for a specific port."""
+        if not (1 <= port <= 65535):
+            return ToolResult(success=False, error=f"Invalid port number: {port}. Port must be between 1 and 65535.")
+
+        lines: List[str] = []
+        try:
+            res_ss = subprocess.run(
+                ["ss", "-tulpn", f"sport = :{port}"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if res_ss.returncode == 0:
+                raw_lines = [ln.strip() for ln in res_ss.stdout.splitlines() if ln.strip()]
+                if len(raw_lines) > 1:
+                    lines = raw_lines
+        except Exception:
+            pass
+
+        lsof_lines: List[str] = []
+        try:
+            res_lsof = subprocess.run(
+                ["lsof", "-i", f":{port}"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if res_lsof.returncode == 0 and res_lsof.stdout.strip():
+                lsof_lines = [ln.strip() for ln in res_lsof.stdout.splitlines() if ln.strip()]
+        except Exception:
+            pass
+
+        if not lines and not lsof_lines:
+            return ToolResult(
+                success=True,
+                stdout=f"No process is currently listening on or using port {port}.",
+                data={"port": port, "in_use": False},
+            )
+
+        output_parts = [f"Port {port} is in use:\n"]
+        if lines:
+            output_parts.append("\n".join(lines))
+        elif lsof_lines:
+            output_parts.append("\n".join(lsof_lines))
+
+        return ToolResult(
+            success=True,
+            stdout="\n".join(output_parts),
+            data={"port": port, "in_use": True, "raw_ss": lines, "raw_lsof": lsof_lines},
+        )
+
     def run(self, arguments: Dict[str, Any], timeout: float = 30.0) -> ToolResult:
+        port = arguments.get("port")
+        if port is not None:
+            try:
+                return self._inspect_port(int(port), timeout=timeout)
+            except (ValueError, TypeError):
+                return ToolResult(success=False, error=f"Invalid port argument: {port}")
+
         interfaces: List[Dict[str, Any]] = []
         routes: List[Dict[str, Any]] = []
 

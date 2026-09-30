@@ -251,12 +251,13 @@ class AgentController:
         executed_tools: List[ExecutedToolRecord] = []
         executed_signatures: Set[str] = set()
         step = 0
+        total_llm_compute = 0.0
 
         while step < max_steps:
-            # Hard 8.0s cap check: prevent exceeding latency budget
-            elapsed = time.perf_counter() - loop_start_time
-            if elapsed >= 8.0 and executed_tools:
-                logger.warning("Hard 8.0s latency cap reached (%.2fs elapsed); synthesizing answer.", elapsed)
+            # Active compute latency cap (excludes human interaction wait time in confirm prompts)
+            active_compute = total_llm_compute + sum(et.result.duration for et in executed_tools)
+            if active_compute >= 8.0 and executed_tools:
+                logger.warning("Hard 8.0s compute latency cap reached (%.2fs active elapsed); synthesizing answer.", active_compute)
                 break
 
             step += 1
@@ -283,6 +284,7 @@ class AgentController:
                 )
 
             step_llm_duration = time.perf_counter() - step_llm_start
+            total_llm_compute += step_llm_duration
             raw_data = response.raw or {}
             p_tokens = raw_data.get("prompt_eval_count", 0)
             o_tokens = raw_data.get("eval_count", 0)
@@ -405,9 +407,14 @@ class AgentController:
 
         # Hard-cap exit: Synthesize final answer from existing tool outputs
         if executed_tools:
-            collected_outputs = [
-                et.result.stdout or et.result.error or "" for et in executed_tools
-            ]
+            collected_outputs = []
+            for et in executed_tools:
+                if et.result.stdout:
+                    collected_outputs.append(et.result.stdout)
+                elif et.result.error:
+                    collected_outputs.append(f"Command '{et.arguments.get('command', et.tool_name)}' reported: {et.result.error}")
+                elif et.tool_name == "execute_command" and et.result.success:
+                    collected_outputs.append(f"Executed '{et.arguments.get('command')}' successfully.")
             fallback_answer = "\n\n".join(filter(None, collected_outputs)) or "Task completed."
             messages.append(Message(role="assistant", content=fallback_answer))
             return AgentResponse(

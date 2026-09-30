@@ -93,12 +93,22 @@ class ExecuteCommandTool(BaseTool):
             duration = round(time.perf_counter() - start_time, 4)
             success = (res.returncode == 0)
 
+            stdout = res.stdout
+            error = None
+            if not success:
+                cmd_base = command.strip().split()[0].split("/")[-1] if command.strip() else ""
+                if cmd_base in ("lsof", "grep", "fuser") and res.returncode == 1 and not res.stderr.strip():
+                    success = True
+                    stdout = stdout or "(No matching processes or entries found)"
+                else:
+                    error = res.stderr.strip() or f"Process exited with code {res.returncode}"
+
             return ToolResult(
                 success=success,
                 exit_code=res.returncode,
-                stdout=res.stdout,
+                stdout=stdout,
                 stderr=res.stderr,
-                error=f"Process exited with code {res.returncode}" if not success else None,
+                error=error,
                 duration=duration,
             )
         except subprocess.TimeoutExpired:
